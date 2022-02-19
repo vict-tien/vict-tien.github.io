@@ -1,0 +1,21 @@
+
+html {
+text-align: center;
+}
+
+nav ul li {
+    margin-left: 2em;
+    display: inline-block;
+}
+
+nav ul li a:hover, nav ul li a:focus {
+    color: black;
+    background-color: white;
+    font-weight: bold;
+}
+footer {
+    position: absolute;
+    bottom: 0%;
+    width: 100%;
+
+}
