@@ -1,15 +1,3 @@
-/* ============================================================================
- *  ⚠️  PLACEHOLDER CONTENT — NOT REAL
- * ----------------------------------------------------------------------------
- *  "Jordan Mercer" is a fictional persona that shipped with the design mockup.
- *  Every name, number, employer, metric and case study in this file is invented
- *  filler used to prove out the layout. None of it describes a real person.
- *
- *  This is the ONLY file you need to edit to make the site yours. Replace the
- *  values below, then set IS_PLACEHOLDER to false to hide the "placeholder
- *  content" banner that renders at the top of the page.
- * ========================================================================== */
-
 /** Flip to false once you've replaced the content below with your own. */
 export const IS_PLACEHOLDER = true;
 
@@ -36,20 +24,36 @@ export const NAV: NavItem[] = [
 
 /* -- Identity ------------------------------------------------------------- */
 
-export const identity = {
-  firstName: 'Jordan',
-  lastName: 'Mercer',
-  /** Sits under the name in the rail and mobile header. */
-  disciplines: 'PRODUCT · DEVELOPMENT · ENGINEERING',
-  location: 'MELBOURNE · UTC+10',
-  email: 'hello@example.com',
-  availability: 'OPEN TO ROLES & CONTRACTS',
+export interface Availability {
+  /** Full form for the desktop rail. */
+  full: string;
   /** Trimmed for the narrower tablet rail. */
-  availabilityCompact: 'OPEN TO ROLES',
+  compact: string;
   /** Short form used in the narrow mobile header. */
-  availabilityShort: 'OPEN',
-  footerLeft: 'J. MERCER — PORTFOLIO 2026',
-  footerRight: 'REPLIES WITHIN 24H',
+  short: string;
+}
+
+/**
+ * The availability badge in the rail foot and the mobile header.
+ * Set to `null` to hide it — the status dot goes with it.
+ */
+const availability: Availability | null = null;
+//{
+//  full: 'OPEN TO CONTRACTS',
+//  compact: 'OPEN TO ROLES',
+//  short: 'OPEN',
+//};
+
+export const identity = {
+  firstName: 'Victor',
+  lastName: 'Tian',
+  /** Sits under the name in the rail and mobile header — one line each from 1024px up. */
+  disciplines: ['Product Manager', 'Data Analyst', 'Building Services Engineer'],
+  location: 'Sydney · UTC+10',
+  email: 'haolin.tian.victor@gmail.com',
+  availability,
+  footerLeft: 'V. Tian — Portfolio 2026',
+  footerRight: '',
 };
 
 /* -- 01 / Intro ----------------------------------------------------------- */
@@ -218,10 +222,9 @@ export const now = {
 /* -- 06 / Contact --------------------------------------------------------- */
 
 export const contact = {
-  body: "Tell me what's stuck. If it's a platform or internal-tools problem, I'll have an opinion within a day.",
+  body: "",
   links: [
-    { label: 'GITHUB', href: '#' },
+    { label: 'GITHUB', href: 'https://github.com/vict-tien' },
     { label: 'LINKEDIN', href: '#' },
-    { label: 'WRITING', href: '#' },
   ],
 };

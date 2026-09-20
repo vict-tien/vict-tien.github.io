@@ -177,6 +177,9 @@
 }
 
 .rail__disciplines {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.7em;
   font-size: var(--fs-label);
   letter-spacing: 0.11em;
   color: var(--muted);
@@ -325,6 +328,16 @@
   /* Enough room for a full panel at once, so hard snapping feels right. */
   .pane {
     scroll-snap-type: y mandatory;
+  }
+
+  /* Rail is wide enough here to give each discipline its own line. */
+  .rail__disciplines {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .rail__discipline {
+    white-space: nowrap;
   }
 }
 

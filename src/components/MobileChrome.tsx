@@ -9,12 +9,14 @@ export function MobileHeader() {
           <b>
             {identity.firstName} {identity.lastName}
           </b>
-          <span className="mhead__disciplines">{identity.disciplines}</span>
+          <span className="mhead__disciplines">{identity.disciplines.join(' · ')}</span>
         </span>
-        <span className="mhead__status">
-          <span className="dot" aria-hidden="true" />
-          {identity.availabilityShort}
-        </span>
+        {identity.availability && (
+          <span className="mhead__status">
+            <span className="dot" aria-hidden="true" />
+            {identity.availability.short}
+          </span>
+        )}
       </div>
     </header>
   );
