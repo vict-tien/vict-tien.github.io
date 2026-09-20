@@ -1,0 +1,172 @@
+/* ============================================================================
+ *  Design tokens — lifted from the "Dossier" boards (2A / 3A / 3B / 3C).
+ * ========================================================================== */
+
+:root {
+  /* Surfaces */
+  --paper: #f4f3f0; /* page + panel background */
+  --canvas: #e8e6e1; /* outer canvas, letterbox areas */
+  --ink: #171717; /* primary text, hard rules, active fill */
+  --panel-dark: #141312; /* the Experience panel */
+
+  /* Text */
+  --body: #3c3a37; /* long-form body copy */
+  --muted: #6f6b66; /* labels, metadata */
+  --on-dark: #f4f3f0;
+  --on-dark-body: #c8c3bb;
+  --on-dark-muted: #9c968e;
+
+  /* Lines */
+  --rule: #cfcac2; /* frame borders, gap fills */
+  --hairline: #e2ded7; /* soft internal dividers */
+  --hairline-dark: #2a2826;
+
+  /* Type */
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+
+  /* Motion */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-fast: 160ms;
+
+  /* Shell metrics — overridden per breakpoint in layout.css */
+  --rail-w: 0px;
+  --header-h: 110px;
+  --tabbar-h: 54px;
+  --pad-x: 18px;
+  --pad-y: 24px;
+
+  /* Type scale — overridden per breakpoint */
+  --fs-display: 46px;
+  --fs-display-lh: 1;
+  --fs-section-head: 28px;
+  --fs-case-name: 19px;
+  --fs-stat: 26px;
+  --fs-metric: 22px;
+  --fs-body: 13px;
+  --fs-label: 9px;
+  --fs-micro: 8px;
+  --fs-nav: 10px;
+
+  color-scheme: light;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: var(--fs-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  height: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+p {
+  text-wrap: pretty;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* Keyboard focus is visible everywhere; mouse clicks stay clean. */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.panel--dark :focus-visible {
+  outline-color: var(--on-dark);
+}
+
+/* Utility ------------------------------------------------------------------ */
+
+.serif {
+  font-family: var(--serif);
+  font-weight: 300;
+}
+
+.label {
+  font-size: var(--fs-label);
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.eyebrow {
+  font-size: var(--fs-label);
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+/* The hatched "image goes here" plate used throughout the design. */
+.hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    #dcd8d2 0 8px,
+    var(--paper) 8px 16px
+  );
+  border: 1px solid var(--rule);
+}
+
+.hatch__caption {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.hatch__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

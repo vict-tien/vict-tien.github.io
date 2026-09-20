@@ -1,0 +1,370 @@
+/* ============================================================================
+ *  Shell layout — one responsive implementation of four design boards:
+ *
+ *    1  < 768px           iPhone      header + snap pane + bottom index bar
+ *    2  768 – 1023px      iPad port.  212px rail, case grid over stacked detail
+ *    3  1024 – 1279px     iPad land.  238px rail, case list beside detail
+ *    4  >= 1280px         desktop     268px rail, full master/detail dossier
+ * ========================================================================== */
+
+.app {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.shell {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto; /* mobile: header / pane / tabbar */
+}
+
+/* -- Scrolling pane -------------------------------------------------------- */
+
+.pane {
+  position: relative; /* panels measure offsetTop against the pane */
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  scroll-snap-type: y proximity;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pane::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.panel {
+  min-height: 100%;
+  scroll-snap-align: start;
+  padding: var(--pad-y) var(--pad-x);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel--dark {
+  background: var(--panel-dark);
+  color: var(--on-dark);
+}
+
+/* -- Mobile header (1) ---------------------------------------------------- */
+
+.mhead {
+  background: var(--paper);
+  border-bottom: 1px solid var(--ink);
+  padding: 0 var(--pad-x);
+  padding-top: env(safe-area-inset-top);
+}
+
+.mhead__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  gap: 12px;
+}
+
+.mhead__name {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mhead__name b {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.mhead__disciplines {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.mhead__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  background: currentColor;
+  border-radius: 50%;
+  flex: none;
+}
+
+/* -- Mobile bottom index bar (1) ------------------------------------------ */
+
+.tabbar {
+  background: var(--paper);
+  border-top: 1px solid var(--ink);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  height: var(--tabbar-h);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: content-box;
+}
+
+.tabbar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  transition: color var(--t-fast) var(--ease);
+}
+
+.tabbar__num {
+  font-size: 9px;
+  color: var(--ink);
+}
+
+.tabbar__item[aria-current='true'] {
+  color: var(--ink);
+}
+
+.tabbar__item[aria-current='true'] .tabbar__num {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 1px 4px;
+}
+
+/* -- Index rail (2 / 3 / 4) ------------------------------------------------ */
+
+.rail {
+  display: none;
+  border-right: 1px solid var(--ink);
+  padding: var(--rail-pad-y) var(--rail-pad-x);
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--paper);
+  min-height: 0;
+}
+
+.rail__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rail-gap);
+}
+
+.rail__name {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.rail__name b {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: var(--rail-name-fs);
+  line-height: 1.05;
+}
+
+.rail__disciplines {
+  font-size: var(--fs-label);
+  letter-spacing: 0.11em;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.rail__nav {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--hairline);
+}
+
+.rail__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--fs-nav);
+  letter-spacing: 0.1em;
+  transition: color var(--t-fast) var(--ease);
+}
+
+.rail__item:hover {
+  color: var(--muted);
+}
+
+.rail__item span:last-child {
+  color: var(--rule);
+  transition: color var(--t-fast) var(--ease);
+}
+
+.rail__item[aria-current='true'] span:last-child {
+  color: var(--ink);
+}
+
+.rail__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: var(--fs-label);
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.rail__available {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink);
+}
+
+.rail__email {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 3px;
+  align-self: flex-start;
+  letter-spacing: 0.04em;
+  transition: color var(--t-fast) var(--ease);
+}
+
+.rail__email:hover {
+  color: var(--ink);
+}
+
+/* ==========================================================================
+ *  1 — phone (default, above). Type scale:
+ * ========================================================================== */
+
+:root {
+  --fs-display: clamp(34px, 11.8vw, 52px);
+  --fs-section-head: clamp(22px, 7.2vw, 30px);
+  --fs-case-name: 19px;
+  --fs-stat: 26px;
+  --fs-metric: 22px;
+  --fs-body: 13px;
+  --fs-label: 9px;
+  --fs-micro: 8px;
+  --fs-nav: 8px;
+  --pad-x: 18px;
+  --pad-y: 24px;
+}
+
+/* ==========================================================================
+ *  2 — iPad portrait
+ * ========================================================================== */
+
+@media (min-width: 768px) {
+  :root {
+    --rail-w: 212px;
+    --rail-pad-x: 22px;
+    --rail-pad-y: 30px;
+    --rail-gap: 26px;
+    --rail-name-fs: 27px;
+
+    --pad-x: 40px;
+    --pad-y: 44px;
+
+    --fs-display: clamp(58px, 9.4vw, 82px);
+    --fs-section-head: clamp(30px, 4.6vw, 40px);
+    --fs-case-name: 23px;
+    --fs-stat: 30px;
+    --fs-metric: 28px;
+    --fs-body: 14px;
+    --fs-label: 10px;
+    --fs-micro: 9px;
+    --fs-nav: 10px;
+  }
+
+  .shell {
+    grid-template-rows: 1fr;
+    grid-template-columns: var(--rail-w) 1fr;
+  }
+
+  .mhead,
+  .tabbar {
+    display: none;
+  }
+
+  .rail {
+    display: flex;
+  }
+}
+
+/* ==========================================================================
+ *  3 — iPad landscape
+ * ========================================================================== */
+
+@media (min-width: 1024px) {
+  :root {
+    --rail-w: 238px;
+    --rail-pad-x: 24px;
+    --rail-gap: 24px;
+    --rail-name-fs: 29px;
+
+    --pad-x: 44px;
+    --pad-y: 44px;
+
+    --fs-display: clamp(64px, 7.2vw, 92px);
+    --fs-section-head: clamp(34px, 3.4vw, 42px);
+    --fs-case-name: 24px;
+    --fs-stat: 32px;
+    --fs-metric: 29px;
+  }
+
+  /* Enough room for a full panel at once, so hard snapping feels right. */
+  .pane {
+    scroll-snap-type: y mandatory;
+  }
+}
+
+/* ==========================================================================
+ *  4 — desktop dossier
+ * ========================================================================== */
+
+@media (min-width: 1280px) {
+  :root {
+    --rail-w: 268px;
+    --rail-pad-x: 28px;
+    --rail-pad-y: 36px;
+    --rail-gap: 30px;
+    --rail-name-fs: 32px;
+
+    --pad-x: 56px;
+    --pad-y: 52px;
+
+    --fs-display: clamp(72px, 6.7vw, 104px);
+    --fs-section-head: clamp(34px, 2.9vw, 44px);
+    --fs-case-name: 26px;
+    --fs-stat: 34px;
+    --fs-metric: 32px;
+    --fs-nav: 11px;
+    --fs-label: 11px;
+    --fs-micro: 10px;
+  }
+
+  .rail__item {
+    padding: 13px 0;
+  }
+}
+
+/* Short viewports: let panels breathe rather than crushing the content. */
+@media (max-height: 620px) {
+  .pane {
+    scroll-snap-type: none;
+  }
+
+  .panel {
+    min-height: auto;
+  }
+}
