@@ -1,5 +1,11 @@
 /* ============================================================================
- *  Design tokens — lifted from the "Dossier" boards (2A / 3A / 3B / 3C).
+ *  Design tokens — lifted from the "Dossier" boards (2A / 3A / 3B / 3C),
+ *  then made overflow-tolerant per docs/DESIGN-SPEC-OVERFLOW.md.
+ *
+ *  Vertical metrics are declared twice: a `--*-base` value set per WIDTH
+ *  breakpoint in layout.css, and the token itself, which multiplies that base
+ *  by `--density` — a HEIGHT-driven scale (§3.2 of the spec). At the default
+ *  density of 1 every value is identical to the original boards.
  * ========================================================================== */
 
 :root {
@@ -7,19 +13,16 @@
   --paper: #f4f3f0; /* page + panel background */
   --canvas: #e8e6e1; /* outer canvas, letterbox areas */
   --ink: #171717; /* primary text, hard rules, active fill */
-  --panel-dark: #141312; /* the Experience panel */
 
   /* Text */
   --body: #3c3a37; /* long-form body copy */
   --muted: #6f6b66; /* labels, metadata */
-  --on-dark: #f4f3f0;
-  --on-dark-body: #c8c3bb;
+  --on-dark: #f4f3f0; /* text on ink fills: active case, placeholder flag */
   --on-dark-muted: #9c968e;
 
   /* Lines */
   --rule: #cfcac2; /* frame borders, gap fills */
   --hairline: #e2ded7; /* soft internal dividers */
-  --hairline-dark: #2a2826;
 
   /* Type */
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -29,17 +32,65 @@
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --t-fast: 160ms;
 
-  /* Shell metrics — overridden per breakpoint in layout.css */
+  /* Shell metrics — the non-vertical ones, overridden per breakpoint */
   --rail-w: 0px;
   --header-h: 110px;
   --tabbar-h: 54px;
   --pad-x: 18px;
-  --pad-y: 24px;
+
+  /* -- Vertical rhythm ----------------------------------------------------
+   * Bases are the original board values; layout.css swaps them per width.
+   * Every consumer reads the density-scaled token, never the base.
+   */
+  --density: 1;
+
+  --pad-y-base: 24px; /* panel padding */
+  --gap-intro-base: 20px; /* 01 intro stack */
+  --gap-contact-base: 22px; /* 06 contact stack */
+  --gap-about-base: 18px; /* 03 about stack / grid rows */
+  --gap-tracks-base: 30px; /* 04 experience, between stacked tracks */
+  --gap-cases-base: 16px; /* 02 master/detail */
+  --gap-detail-base: 16px; /* 02 inside the detail column */
+  --row-exp-base: 16px; /* 04 list row padding */
+  --row-now-base: 22px; /* 05 list row padding */
+  --rail-pad-y-base: 30px;
+  --rail-gap-base: 26px;
+
+  --pad-y: calc(var(--pad-y-base) * var(--density));
+  --gap-intro: calc(var(--gap-intro-base) * var(--density));
+  --gap-contact: calc(var(--gap-contact-base) * var(--density));
+  --gap-about: calc(var(--gap-about-base) * var(--density));
+  --gap-tracks: calc(var(--gap-tracks-base) * var(--density));
+  --gap-cases: calc(var(--gap-cases-base) * var(--density));
+  --gap-detail: calc(var(--gap-detail-base) * var(--density));
+  --row-exp: calc(var(--row-exp-base) * var(--density));
+  --row-now: calc(var(--row-now-base) * var(--density));
+  --rail-pad-y: calc(var(--rail-pad-y-base) * var(--density));
+  --rail-gap: calc(var(--rail-gap-base) * var(--density));
+
+  /* -- Count-agnostic grids (§3.4) ---------------------------------------
+   * Minimum track width for each auto-fit grid. Sized so the default content
+   * lays out exactly as the boards do; a different number of items reflows
+   * instead of orphaning or squashing.
+   */
+  --stat-min: 120px;
+  --metric-min: 86px;
+  --fact-min: 84px;
+  --case-min: 130px;
+
+  /* -- Overflow telemetry -------------------------------------------------
+   * Written onto .shell by useDossierNav: how far through the active panel we
+   * are (0–1), and how much of it fits on screen (0–1). Drive the rail
+   * progress hairline and the tab bar underline. Defaults are the
+   * "nothing overflows" state, so the CSS is correct before JS runs.
+   */
+  --panel-progress: 0;
+  --panel-visible: 1;
 
   /* Type scale — overridden per breakpoint */
-  --fs-display: 46px;
+  --fs-display: clamp(30px, min(11.8vw, 9.5vh), 52px);
   --fs-display-lh: 1;
-  --fs-section-head: 28px;
+  --fs-section-head: clamp(20px, min(7.2vw, 5.5vh), 30px);
   --fs-case-name: 19px;
   --fs-stat: 26px;
   --fs-metric: 22px;
@@ -102,8 +153,32 @@ button {
   outline-offset: 2px;
 }
 
-.panel--dark :focus-visible {
-  outline-color: var(--on-dark);
+/* -- Horizontal overflow (§3.5) --------------------------------------------
+ * The pane sets `overflow-x: hidden`, so anything too wide is lost without a
+ * trace. A word that cannot fit breaks rather than punching through the frame.
+ * Hyphenation is limited to body copy, where it is typographically normal —
+ * display type breaks without hyphens so the boards' headlines stay clean.
+ */
+h1,
+h2,
+h3,
+p,
+dd,
+.serif,
+.prose,
+.stat__value,
+.case__name,
+.exp__org,
+.now__value,
+.about__lead,
+.intro__headline,
+.rail__name b,
+.mhead__name b {
+  overflow-wrap: break-word;
+}
+
+.prose {
+  hyphens: auto;
 }
 
 /* Utility ------------------------------------------------------------------ */

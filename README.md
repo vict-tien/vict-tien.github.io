@@ -80,15 +80,57 @@ Don't forget the `<title>` and meta description in `index.html`.
 
 The pane is a scroll-snap container; the rail and tab bar ease it between
 panels (`src/hooks/useDossierNav.ts`), and an `IntersectionObserver` marks the
-section you're in. `prefers-reduced-motion` turns the easing into a jump. On
-short viewports (`max-height: 620px`) snapping is disabled so content can't get
-trapped off-screen.
+section you're in. `prefers-reduced-motion` turns the easing into a jump.
+
+### When content outgrows a panel
+
+A panel is a **minimum**, not a maximum — see
+[`docs/DESIGN-SPEC-OVERFLOW.md`](docs/DESIGN-SPEC-OVERFLOW.md) for the full
+reasoning. Each section is assigned one of three behaviours in `App.tsx`, and it
+rides on the panel as `data-mode`:
+
+| Mode | Sections | Behaviour |
+| --- | --- | --- |
+| **fit** | 01 intro, 06 contact | always one screenful; content budget in §5 of the spec |
+| **flow** | 03 about, 04 experience, 05 now, 02 below 1024px | grows past the viewport, with a "CONT. ↓" caption |
+| **frame** | 02 case files, ≥ 1024px | panel holds; the list and detail scroll inside it |
+
+A panel taller than the pane drops out of scroll-snap, so it can never yank you
+away from something you're part way through. While you're in one, a 1px hairline
+on the rail's right edge tracks how far through it you are (a progress underline
+on the active tab, on phones). Overflow is measured with a `ResizeObserver`, so
+it keeps up with web fonts landing and with content you edit.
+
+There is also a **density ladder** driven by viewport *height*, independent of
+the four width boards: under 820px tall everything tightens by 25% and the short
+copy variants in `content.ts` come into play; under 620px it tightens further and
+snapping turns off entirely.
+
+In development, a Fit panel that overflows logs a console warning — the
+guarantee is only worth something if something checks it.
+
+### Testing overflow
+
+```bash
+npm run dev:stress
+```
+
+Runs the site against [`src/content.stress.ts`](src/content.stress.ts): doubled
+prose, eight case files, eight résumé entries per track, five stats, four
+metrics, and a 38-character unbroken org name. Nothing should clip, overlap or
+scroll sideways, and every panel's last line should be reachable scrolling down
+**and back up**. The viewport matrix worth checking is in §7 of the spec — 400%
+browser zoom included, since that is WCAG 2.1 SC 1.4.10 and the reason this
+matters beyond polish.
 
 ```
 src/
   content.ts              ← all copy and data (the only file you must edit)
   App.tsx                 ← shell: flag, header/rail, pane, tab bar
-  hooks/useDossierNav.ts  ← eased snap navigation + scroll spy
+  content.stress.ts       ← over-budget fixture for `npm run dev:stress`
+  hooks/
+    useDossierNav.ts      ← snap nav, scroll spy, overflow detection
+    useMediaQuery.ts      ← breakpoints that change markup, not just styling
   components/             ← Rail, MobileChrome, Plate, Stat, PlaceholderFlag
   sections/               ← Intro, CaseFiles, About, Experience, Now, Contact
   styles/

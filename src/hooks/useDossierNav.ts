@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+/** A panel taller than the pane by less than this is treated as fitting. */
+const EPS = 2;
+
 /**
  * Scroll behaviour for the dossier pane.
  *
@@ -8,12 +11,26 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *   mockup used), then restoring it.
  * - `active` tracks which panel is under the middle of the pane, so the index
  *   rail and the mobile tab bar can show where you are.
+ * - `overflowing[i]` says whether panel `i` is taller than the pane. Panels
+ *   that overflow drop out of scroll-snap so they can never yank a reader away
+ *   from content they are part way through.
+ * - Scroll position *within* the active panel is written straight onto the
+ *   shell as `--panel-progress` / `--panel-visible`, plus two data attributes.
+ *   That drives the rail's progress hairline and the "CONT. ↓" caption without
+ *   a React render per frame.
+ *
+ * `fitPanels` names the Mode A panels — the ones the design guarantees will be
+ * one screenful. In development, one overflowing is a bug worth a warning.
  */
-export function useDossierNav(count: number) {
+export function useDossierNav(count: number, fitPanels: readonly number[] = []) {
   const paneRef = useRef<HTMLDivElement | null>(null);
+  const shellRef = useRef<HTMLDivElement | null>(null);
   const panels = useRef<(HTMLElement | null)[]>([]);
   const anim = useRef<{ raf: number; timer: number } | null>(null);
   const [active, setActive] = useState(0);
+  const [overflowing, setOverflowing] = useState<boolean[]>(() =>
+    new Array(count).fill(false),
+  );
 
   const registerPanel = useCallback((index: number, el: HTMLElement | null) => {
     panels.current[index] = el;
@@ -105,7 +122,124 @@ export function useDossierNav(count: number) {
     return () => observer.disconnect();
   }, [count]);
 
+  /* -- Which panels overflow ------------------------------------------------
+   * A ResizeObserver rather than a resize listener, so this also catches the
+   * reflow when the web fonts land and when content itself changes height.
+   */
+  useEffect(() => {
+    const pane = paneRef.current;
+    if (!pane) return;
+
+    const measure = () => {
+      const limit = pane.clientHeight;
+      const next = Array.from(
+        { length: count },
+        (_, i) => {
+          const el = panels.current[i];
+          return !!el && el.offsetHeight > limit + EPS;
+        },
+      );
+      setOverflowing((prev) =>
+        prev.length === next.length && prev.every((v, i) => v === next[i]) ? prev : next,
+      );
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }
+
+    const ro = new ResizeObserver(measure);
+    ro.observe(pane);
+    panels.current.slice(0, count).forEach((el) => el && ro.observe(el));
+
+    // Web fonts change every panel's height after first paint.
+    let live = true;
+    document.fonts?.ready.then(() => live && measure());
+
+    return () => {
+      live = false;
+      ro.disconnect();
+    };
+  }, [count]);
+
+  /* -- Scroll telemetry -----------------------------------------------------
+   * Written to the DOM directly. These values change every frame while
+   * scrolling; routing them through React state would re-render six panels
+   * per frame to move a one-pixel hairline.
+   */
+  useEffect(() => {
+    const pane = paneRef.current;
+    const shell = shellRef.current;
+    if (!pane || !shell) return;
+
+    let raf = 0;
+
+    const write = () => {
+      raf = 0;
+      const view = pane.clientHeight;
+      if (!view) return;
+
+      // The panel under the middle of the pane — computed from geometry rather
+      // than read from `active`, so it can never lag a frame behind the scroll.
+      const mid = pane.scrollTop + view / 2;
+      let el: HTMLElement | null = null;
+      for (let i = 0; i < count; i++) {
+        const panel = panels.current[i];
+        if (panel && panel.offsetTop <= mid) el = panel;
+      }
+      if (!el) return;
+
+      const scrollable = Math.max(0, el.offsetHeight - view);
+      const overflows = scrollable > EPS;
+      const progress = overflows
+        ? Math.min(1, Math.max(0, (pane.scrollTop - el.offsetTop) / scrollable))
+        : 0;
+      const visible = el.offsetHeight > 0 ? Math.min(1, view / el.offsetHeight) : 1;
+
+      shell.style.setProperty('--panel-progress', String(progress));
+      shell.style.setProperty('--panel-visible', String(visible));
+      shell.dataset.panelOverflow = overflows ? 'true' : 'false';
+      shell.dataset.fold = overflows && progress < 0.99 ? 'true' : 'false';
+    };
+
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(write);
+    };
+
+    pane.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    write();
+
+    return () => {
+      pane.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      if (raf) cancelAnimationFrame(raf);
+    };
+    // `overflowing` is not read here, but a change to it means a panel's height
+    // changed — which is exactly when these numbers need recomputing.
+  }, [count, overflowing]);
+
+  /* -- Mode A guard ---------------------------------------------------------
+   * The design promises Intro and Contact are always one screenful. A promise
+   * nobody checks stops being true within two content edits. Dev only; the
+   * whole block is dropped from the production bundle.
+   */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    fitPanels.forEach((i) => {
+      if (!overflowing[i]) return;
+      console.warn(
+        `[dossier] Panel ${i} is a Fit panel but overflows its viewport. ` +
+          'Shorten the copy, or reassign it to Mode B — see ' +
+          'docs/DESIGN-SPEC-OVERFLOW.md §5.',
+      );
+    });
+  }, [overflowing, fitPanels]);
+
   useEffect(() => cancel, [cancel]);
 
-  return { paneRef, registerPanel, active, goTo };
+  return { paneRef, shellRef, registerPanel, active, goTo, overflowing };
 }

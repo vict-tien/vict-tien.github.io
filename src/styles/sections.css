@@ -1,5 +1,17 @@
 /* ============================================================================
  *  Section internals — the six panels of the dossier.
+ *
+ *  Overflow rules per docs/DESIGN-SPEC-OVERFLOW.md:
+ *
+ *  - `safe center` everywhere content is centred. Centring is right while the
+ *    content fits and harmful once it does not; `safe` falls back to `start`
+ *    at exactly that moment. In engines without it the declaration is dropped
+ *    and alignment returns to `normal`, which is the same fallback — so no
+ *    @supports block is needed.
+ *  - Plate heights are viewport-relative, never fixed pixels.
+ *  - Every grid that used to hard-code its child count now uses auto-fit
+ *    against a `--*-min` token, so a different number of items reflows
+ *    instead of orphaning or squashing.
  * ========================================================================== */
 
 /* -- Shared ---------------------------------------------------------------- */
@@ -16,22 +28,53 @@
   flex: none;
 }
 
-.panel--dark .sechead {
-  border-bottom-color: #3c3a37;
+.sechead h2 {
+  min-width: 0;
 }
 
 .sechead__aside {
+  min-width: 0;
   color: var(--muted);
 }
 
-.panel--dark .sechead__aside {
-  color: var(--on-dark-muted);
+/* A call to action promoted into the section header, so it survives the fold
+   when the section below it runs long (§4.5). */
+.sechead__cta {
+  flex: none;
+  align-self: center;
+  padding: 9px 14px;
+  border: 1px solid transparent; /* keeps the disabled variant the same size */
+  background: var(--ink);
+  color: var(--paper);
+  font-size: var(--fs-label);
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
+}
+
+.sechead__cta:hover {
+  background: #2f2d2a;
+}
+
+.sechead__cta[aria-disabled='true'] {
+  background: none;
+  border: 1px dashed var(--rule);
+  color: var(--muted);
+  cursor: default;
+}
+
+.sechead__cta[aria-disabled='true']:hover {
+  background: none;
+  color: var(--muted);
 }
 
 .stat {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  min-width: 0;
 }
 
 .stat__value {
@@ -60,9 +103,10 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 20px;
-  padding-bottom: 22px;
+  justify-content: safe center;
+  gap: var(--gap-intro);
+  padding-bottom: calc(22px * var(--density));
+  min-width: 0;
 }
 
 .intro__headline {
@@ -80,6 +124,7 @@
 
 .intro__cta {
   align-self: flex-start;
+  max-width: 100%;
   padding: 15px 20px;
   background: var(--ink);
   color: var(--paper);
@@ -94,7 +139,7 @@
 
 .intro__stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(var(--stat-min), 1fr));
   gap: 16px 20px;
   border-top: 1px solid var(--ink);
   padding-top: 16px;
@@ -102,25 +147,16 @@
 }
 
 @media (min-width: 768px) {
-  .intro__main {
-    gap: 26px;
-  }
-
   .intro__cta {
     display: none; /* the rail carries the email on tablet and up */
   }
 
   .intro__stats {
-    grid-template-columns: repeat(4, 1fr);
     gap: 18px;
   }
 }
 
 @media (min-width: 1280px) {
-  .intro__main {
-    gap: 32px;
-  }
-
   .intro__stats {
     gap: 24px;
     padding-top: 18px;
@@ -129,21 +165,24 @@
 
 /* -- 02 / Case files ------------------------------------------------------- */
 
+/* No `min-height: 0` here. On phones and tablet portrait the panel must be
+   free to grow with the content — pinning this to the leftover space is what
+   used to push the detail column out of the panel and over section 03.
+   Mode C opts back in at 1024px, where the columns scroll instead. */
 .cases {
   flex: 1;
-  min-height: 0;
   display: grid;
   grid-template-columns: 1fr;
   align-content: start;
-  gap: 16px;
+  gap: var(--gap-cases);
   padding-top: 18px;
+  min-width: 0;
 }
 
 @media (min-width: 768px) {
   .cases {
     grid-template-rows: auto 1fr; /* detail fills the panel, metrics sit low */
     align-content: stretch;
-    gap: 26px;
     padding-top: 24px;
   }
 }
@@ -152,14 +191,13 @@
   .cases {
     grid-template-columns: 268px 1fr;
     grid-template-rows: minmax(0, 1fr);
-    gap: 32px;
+    min-height: 0; /* Mode C — the panel holds, the columns scroll */
   }
 }
 
 @media (min-width: 1280px) {
   .cases {
     grid-template-columns: 300px 1fr;
-    gap: 36px;
   }
 }
 
@@ -167,16 +205,11 @@
 
 .caselist {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(var(--case-min), 1fr));
   gap: 1px;
   background: var(--rule);
   align-self: start;
-}
-
-@media (min-width: 768px) {
-  .caselist {
-    grid-template-columns: repeat(4, 1fr);
-  }
+  min-width: 0;
 }
 
 @media (min-width: 1024px) {
@@ -186,6 +219,18 @@
     gap: 0;
     background: none;
     border-top: 1px solid var(--hairline);
+    /* Mode C: the list is its own scroll region, so any number of cases fits
+       beside the detail without driving the panel taller. */
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .caselist::-webkit-scrollbar {
+    width: 0;
+    height: 0;
   }
 }
 
@@ -269,13 +314,14 @@
 @media (min-width: 1024px) {
   .case {
     display: grid;
-    grid-template-columns: 28px 1fr;
+    grid-template-columns: 28px minmax(0, 1fr);
     gap: 11px;
     align-items: baseline;
     min-height: 56px;
     padding: 15px 13px;
     background: transparent;
     border-bottom: 1px solid var(--hairline);
+    flex: none;
   }
 
   .case[aria-pressed='true'] {
@@ -297,7 +343,7 @@
 
 @media (min-width: 1280px) {
   .case {
-    grid-template-columns: 30px 1fr;
+    grid-template-columns: 30px minmax(0, 1fr);
     gap: 12px;
     padding: 18px 14px;
   }
@@ -312,12 +358,12 @@
 .detail {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  min-height: 0;
+  gap: var(--gap-detail);
+  min-width: 0;
 }
 
 .detail__plate {
-  height: 132px;
+  height: clamp(110px, 16vh, 140px);
   display: flex;
   align-items: flex-end;
   padding: 9px;
@@ -339,13 +385,14 @@
 .detail__cols {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--gap-detail);
 }
 
 .detail__field {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .detail__field dt {
@@ -361,7 +408,7 @@
 
 .detail__metrics {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(var(--metric-min), 1fr));
   gap: 12px;
   border-top: 1px solid var(--ink);
   padding-top: 14px;
@@ -379,14 +426,13 @@
 
 @media (min-width: 768px) {
   .detail {
-    gap: 22px;
     flex: 1;
   }
 
   .detail__plate {
     flex: 1;
-    min-height: 180px;
     height: auto;
+    min-height: clamp(140px, 22vh, 200px);
     padding: 12px;
   }
 
@@ -411,14 +457,38 @@
   }
 }
 
-@media (min-width: 1280px) {
-  /* Board 2A pins the still to 200px and lets the metrics fall to the floor. */
+@media (min-width: 1024px) {
+  /* Mode C. Board 2A's composition is "the still up top, the metrics on the
+     floor". `margin-top: auto` alone only holds that while the prose is short
+     — past that the copy collides with the metrics. Making the metrics sticky
+     keeps the composition true for any length of content: the prose scrolls
+     beneath the bar, and the bar's own hard rule becomes the fold line. */
+  .detail {
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .detail::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
   .detail__plate {
     flex: none;
-    height: 200px;
+    height: clamp(132px, 22vh, 200px);
     min-height: 0;
   }
 
+  .detail__metrics {
+    position: sticky;
+    bottom: 0;
+    background: var(--paper);
+  }
+}
+
+@media (min-width: 1280px) {
   .detail__cols {
     gap: 28px;
   }
@@ -435,8 +505,9 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 18px;
+  justify-content: safe center;
+  gap: var(--gap-about);
+  min-width: 0;
 }
 
 .about__lead {
@@ -455,17 +526,18 @@
   display: flex;
   flex-direction: column;
   gap: 9px;
+  min-width: 0;
 }
 
 .about__plate {
-  height: 210px;
+  height: clamp(150px, 25vh, 210px);
   position: relative;
   overflow: hidden;
 }
 
 .about__facts {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(var(--fact-min), 1fr));
   gap: 14px;
   border-top: 1px solid var(--hairline);
   padding-top: 14px;
@@ -475,6 +547,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
   font-size: var(--fs-body);
 }
 
@@ -484,7 +557,8 @@
   color: var(--muted);
 }
 
-/* Long copy on tablet and up, condensed copy on phones. */
+/* Long copy on tablet and up, condensed copy on phones — and on short screens
+   at any width, see the density block at the foot of this file. */
 .rsp-long {
   display: none;
 }
@@ -507,14 +581,14 @@
 @media (min-width: 768px) {
   .about {
     display: grid;
-    align-content: center;
+    align-content: safe center;
     grid-template-columns: 1fr 250px;
     grid-template-areas:
       'eyebrow eyebrow'
       'lead    figure'
       'body    body'
       'facts   facts';
-    gap: 26px 32px;
+    gap: var(--gap-about) 32px;
   }
 
   .about__eyebrow {
@@ -537,7 +611,7 @@
   }
 
   .about__plate {
-    height: 320px;
+    height: clamp(200px, 32vh, 320px);
   }
 
   .rsp-long {
@@ -557,8 +631,7 @@
       'lead    figure'
       'body    figure'
       'facts   figure';
-    gap: 24px 44px;
-    align-content: center;
+    gap: var(--gap-about) 44px;
   }
 
   .about__figure {
@@ -574,127 +647,201 @@
   }
 
   .about__plate {
-    height: 380px;
+    height: clamp(220px, 40vh, 380px);
   }
 }
 
 @media (min-width: 1280px) {
   .about {
     grid-template-columns: 1fr 320px;
-    gap: 26px 48px;
+    gap: var(--gap-about) 48px;
   }
 
   .about__plate {
-    height: 420px;
+    height: clamp(240px, 46vh, 420px);
   }
 }
 
 /* -- 04 / Experience ------------------------------------------------------- */
 
-.exp__list {
+/* Two parallel tracks — work/projects and education. They stack on phones and
+   sit side by side once the pane is wide enough to carry two lists. */
+.exp__tracks {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: safe center;
+  gap: var(--gap-tracks);
+  min-width: 0;
 }
 
+.exp__track {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* lets long org names wrap instead of widening the column */
+}
+
+.exp__tracklabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--fs-label);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+}
+
+.exp__trackaside {
+  flex: none;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+
+.exp__list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Explicit placement rather than grid-template-areas: the optional meta line
+   has to disappear without leaving a gap behind it. */
 .exp__row {
   display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas:
-    'period title'
-    'org    org'
-    'blurb  blurb';
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
   gap: 7px 12px;
-  padding: 18px 0;
-  border-bottom: 1px solid var(--hairline-dark);
+  padding: var(--row-exp) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.exp__row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .exp__period {
-  grid-area: period;
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
   font-size: var(--fs-label);
   letter-spacing: 0.08em;
-  color: var(--on-dark-muted);
+  color: var(--muted);
 }
 
 .exp__title {
-  grid-area: title;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
   font-size: var(--fs-label);
   letter-spacing: 0.08em;
   text-align: right;
 }
 
+.exp__org,
+.exp__meta,
+.exp__blurb {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
 .exp__org {
-  grid-area: org;
   font-family: var(--serif);
   font-weight: 400;
   font-size: 22px;
   line-height: 1.1;
 }
 
-.exp__blurb {
-  grid-area: blurb;
-  font-size: calc(var(--fs-body) - 1px);
-  line-height: 1.6;
-  color: var(--on-dark-body);
+.exp__meta {
+  margin-top: -2px;
+  font-size: var(--fs-label);
+  letter-spacing: 0.06em;
+  color: var(--muted);
 }
 
+.exp__blurb {
+  font-size: calc(var(--fs-body) - 1px);
+  line-height: 1.6;
+  color: var(--body);
+  /* Honours literal newlines in a blurb string while still collapsing the
+     indentation around them, so content can break its own lines. */
+  white-space: pre-line;
+}
+
+/* Array form — semantically a list, but set as plain lines so it matches a
+   newline-broken string exactly. Add a marker here if you want bullets. */
+.exp__blurb--list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  white-space: normal;
+}
+
+.exp__line + .exp__line {
+  margin-top: 4px;
+}
+
+/* The phone-width résumé button. From 768px up the same control is rendered
+   into the section header instead, where it cannot drift below the fold. */
 .exp__cta {
   align-self: flex-start;
   display: block;
   text-align: center;
   width: 100%;
+  margin-top: 18px;
   padding: 15px;
-  border: 1px solid var(--on-dark);
-  color: var(--on-dark);
+  border: 1px solid transparent; /* keeps the disabled variant the same size */
+  background: var(--ink);
+  color: var(--paper);
   font-size: 10px;
   letter-spacing: 0.14em;
+  flex: none;
   transition:
     background var(--t-fast) var(--ease),
     color var(--t-fast) var(--ease);
 }
 
 .exp__cta:hover {
-  background: var(--on-dark);
-  color: var(--panel-dark);
+  background: #2f2d2a;
 }
 
 .exp__cta[aria-disabled='true'] {
-  border-style: dashed;
-  color: var(--on-dark-muted);
-  cursor: not-allowed;
+  background: none;
+  border: 1px dashed var(--rule);
+  color: var(--muted);
+  cursor: default; /* still inert, but no "blocked" cursor */
 }
 
 .exp__cta[aria-disabled='true']:hover {
   background: none;
-  color: var(--on-dark-muted);
+  color: var(--muted);
 }
 
 @media (min-width: 1024px) {
-  .exp__row {
-    grid-template-columns: 130px 1fr 180px;
-    grid-template-areas:
-      'period org   title'
-      'period blurb title';
-    align-items: start;
-    gap: 6px 24px;
-    padding: 24px 0;
+  .exp__tracks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 32px;
+  }
+
+  /* A single rule between the two tracks, drawn on the second column so it
+     never shows when there is only one track. */
+  .exp__track + .exp__track {
+    padding-left: 32px;
+    border-left: 1px solid var(--hairline);
   }
 
   .exp__org {
     font-size: 24px;
   }
-
-  .exp__cta {
-    width: auto;
-    padding: 14px 22px;
-  }
 }
 
 @media (min-width: 1280px) {
-  .exp__row {
-    grid-template-columns: 140px 1fr 200px;
-    padding: 26px 0;
+  .exp__tracks {
+    gap: 0 40px;
+  }
+
+  .exp__track + .exp__track {
+    padding-left: 40px;
   }
 
   .exp__org {
@@ -708,14 +855,15 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: safe center;
+  min-width: 0;
 }
 
 .now__row {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
-  padding: 22px 0;
+  padding: var(--row-now) 0;
   border-bottom: 1px solid var(--hairline);
 }
 
@@ -726,6 +874,7 @@
 }
 
 .now__value {
+  min-width: 0;
   font-family: var(--serif);
   font-weight: 300;
   font-size: 24px;
@@ -735,10 +884,9 @@
 
 @media (min-width: 1024px) {
   .now__row {
-    grid-template-columns: 160px 1fr;
+    grid-template-columns: 160px minmax(0, 1fr);
     align-items: baseline;
     gap: 30px;
-    padding: 28px 0;
   }
 
   .now__value {
@@ -748,8 +896,7 @@
 
 @media (min-width: 1280px) {
   .now__row {
-    grid-template-columns: 190px 1fr;
-    padding: 30px 0;
+    grid-template-columns: 190px minmax(0, 1fr);
   }
 
   .now__value {
@@ -763,18 +910,20 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 22px;
+  justify-content: safe center;
+  gap: var(--gap-contact);
+  min-width: 0;
 }
 
 .contact__email {
   font-family: var(--serif);
   font-weight: 300;
-  font-size: clamp(30px, 8.6vw, 44px);
+  font-size: clamp(26px, min(8.6vw, 7vh), 44px);
   letter-spacing: -0.02em;
   line-height: 1.1;
   overflow-wrap: anywhere;
   align-self: flex-start;
+  max-width: 100%;
   transition: color var(--t-fast) var(--ease);
 }
 
@@ -817,18 +966,19 @@
   flex: none;
 }
 
-@media (min-width: 768px) {
-  .contact__main {
-    gap: 30px;
-  }
+.contact__foot span {
+  min-width: 0;
+}
 
+@media (min-width: 768px) {
   .contact__email {
-    font-size: clamp(44px, 5.4vw, 72px);
+    font-size: clamp(34px, min(5.4vw, 9vh), 72px);
   }
 
   .contact__links {
     flex-direction: row;
-    gap: 30px;
+    flex-wrap: wrap;
+    gap: 12px 30px;
     background: none;
   }
 
@@ -842,12 +992,6 @@
 
   .contact__foot {
     padding-top: 14px;
-  }
-}
-
-@media (min-width: 1280px) {
-  .contact__main {
-    gap: 34px;
   }
 }
 
@@ -920,5 +1064,24 @@
 
   .flag__short {
     display: none;
+  }
+}
+
+/* ==========================================================================
+ *  Density — the copy half of the ladder in layout.css (§3.2).
+ *
+ *  Last in the last stylesheet on purpose: it has to outrank the width-based
+ *  `.rsp-*` rules above. On a short screen the condensed strings already in
+ *  content.ts are used at every width, not just on phones, which buys back a
+ *  couple of lines in About and Now before either has to overflow.
+ * ========================================================================== */
+
+@media (max-height: 819px) {
+  .rsp-long {
+    display: none;
+  }
+
+  .rsp-short {
+    display: inline;
   }
 }

@@ -51,7 +51,11 @@ export const identity = {
   disciplines: ['Product Manager', 'Data Analyst', 'Building Services Engineer'],
   location: 'Sydney · UTC+10',
   email: 'haolin.tian.victor@gmail.com',
-  availability,
+  /* The annotation is load-bearing. Without it TypeScript narrows the `null`
+     above to the literal type, every consumer sees `availability` as always
+     absent, and `identity.availability && ...` fails to compile the moment you
+     uncomment the block. */
+  availability: availability as Availability | null,
   footerLeft: 'V. Tian — Portfolio 2026',
   footerRight: '',
 };
@@ -176,32 +180,88 @@ export const about = {
 
 /* -- 04 / Experience ------------------------------------------------------ */
 
+export interface ExperienceEntry {
+  period: string;
+  org: string;
+  /** Job title, or the qualification for an education entry. */
+  title: string;
+  /**
+   * Supports multiple lines two ways, and they render identically:
+   * a single string with '\n' where you want a break, or an array of lines.
+   * Reach for the array form when the lines are separate points.
+   */
+  blurb: string | string[];
+  /** Optional second line under the org — honours, stack, client, anything. */
+  meta?: string;
+}
+
+export interface ExperienceTrack {
+  key: string;
+  /** Column heading, e.g. 'WORK & PROJECTS'. */
+  label: string;
+  /** Small right-aligned note beside the heading. Omit to hide it. */
+  aside?: string;
+  entries: ExperienceEntry[];
+}
+
+/**
+ * Two parallel tracks — they stack on phones and sit side by side from 1024px.
+ * Add or remove tracks freely; the layout follows the array.
+ */
 export const experience = {
   /**
    * Résumé download. Put a PDF in `public/` and set this to '/resume.pdf'.
    * While null, the button renders as an unwired placeholder.
    */
   resumeUrl: null as string | null,
-  roles: [
+  tracks: [
     {
-      period: '2022 — NOW',
-      org: 'Northbeam Infrastructure',
-      title: 'SENIOR PM, PLATFORM',
-      blurb: 'Led platform pod of 9. Owned API, billing and developer experience.',
+      key: 'work',
+      label: 'WORK & PROJECTS',
+      aside: 'MOST RECENT FIRST',
+      entries: [
+        {
+          period: 'JUL 2025 — NOW',
+          org: 'Neuron',
+          title: 'ENGINEERING DATA SPECIALIST',
+          blurb: 'Led platform pod of 9. Owned API, billing and developer experience.',
+        },
+        {
+          period: 'JAN 2025 - JUN 2025',
+          org: 'Neuron',
+          title: 'JUNIOR ENGINEERING DATA SPECIALIST',
+          blurb: 'First product hire. \n Took two internal tools to external GA.',
+        },
+        {
+          period: 'DEC 2022 — DEC 2024',
+          org: 'Neuron',
+          title: 'ENGINEERING CONSULTANT, BUILDING SERVICES ENGINEER',
+          blurb: 'Ledger and reconciliation services in Go. \n On-call for settlement.',
+        },
+      ],
     },
     {
-      period: '2019 — 2022',
-      org: 'Corvid Labs',
-      title: 'PRODUCT MANAGER',
-      blurb: 'First product hire. Took two internal tools to external GA.',
+      key: 'education',
+      label: 'EDUCATION',
+      aside: 'QUALIFICATIONS',
+      entries: [
+        {
+          period: 'SEP 2019 — DEC 2024',
+          org: 'UNSW',
+          title: 'BSC., COMPUTER SCIENCE',
+          meta: 'Distinction',
+          blurb: 'Coursework in thermal systems, \n controls and energy analysis.',
+        },
+        {
+          period: 'SEP 2019 — DEC 2024',
+          org: 'UNSW',
+          title: 'BE.(HONS), MECHANICAL ENGINEERING',
+          meta: 'First class honours',
+          blurb: 'Final-year project on sensor \n networks for plant-room telemetry.',
+        },
+      ],
     },
-    {
-      period: '2015 — 2019',
-      org: 'Tessellate Payments',
-      title: 'BACKEND ENGINEER',
-      blurb: 'Ledger and reconciliation services in Go. On-call for settlement.',
-    },
-  ],
+  ] as ExperienceTrack[],
 };
 
 /* -- 05 / Now ------------------------------------------------------------- */
@@ -210,12 +270,8 @@ export const now = {
   updated: 'UPDATED SEPT 2026',
   updatedShort: 'SEPT 2026',
   entries: [
-    { label: 'BUILDING', value: 'A quieter alerting tool for small on-call teams.' },
-    { label: 'READING', value: 'Designing Data-Intensive Applications, second pass.' },
-    {
-      label: 'AVAILABLE FOR',
-      value: 'Platform PM roles, and short technical discovery contracts.',
-    },
+    { label: 'BUILDING', value: 'A private event ticketing and management system.' },
+    { label: 'LEARNING', value: 'RAG, ' },
   ],
 };
 

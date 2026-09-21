@@ -5,6 +5,14 @@
  *    2  768 – 1023px      iPad port.  212px rail, case grid over stacked detail
  *    3  1024 – 1279px     iPad land.  238px rail, case list beside detail
  *    4  >= 1280px         desktop     268px rail, full master/detail dossier
+ *
+ *  Plus the overflow system from docs/DESIGN-SPEC-OVERFLOW.md: a panel is a
+ *  minimum, not a maximum. Three modes, set per section in App.tsx and carried
+ *  on the panel as `data-mode`:
+ *
+ *    fit    guaranteed one screenful (01 intro, 06 contact)
+ *    flow   grows past the viewport, with a continuation affordance
+ *    frame  stays one screenful, scrolls inside (02 cases, >= 1024px)
  * ========================================================================== */
 
 .app {
@@ -16,6 +24,7 @@
 }
 
 .shell {
+  position: relative; /* containing block for the fold caption + progress mark */
   min-height: 0;
   display: grid;
   grid-template-rows: auto 1fr auto; /* mobile: header / pane / tabbar */
@@ -29,6 +38,9 @@
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior-y: contain;
+  /* Proximity, never mandatory: mandatory snapping is the wrong tool once a
+     panel can exceed the scrollport — it skips the tail of a tall panel when
+     you scroll back up. Proximity keeps the settle-onto-a-panel feel. */
   scroll-snap-type: y proximity;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -48,9 +60,65 @@
   flex-direction: column;
 }
 
-.panel--dark {
-  background: var(--panel-dark);
-  color: var(--on-dark);
+/* A panel taller than the pane opts out of snapping entirely, so it can never
+   yank the reader away from content they are part way through. */
+.panel[data-overflow='true'] {
+  scroll-snap-align: none;
+}
+
+/* -- Continuation affordance (§4.2) ---------------------------------------
+ * The printed dossier's "continued overleaf". Shown while the panel under the
+ * reader overflows and is not yet scrolled to its end.
+ */
+
+.fold {
+  position: absolute;
+  right: var(--pad-x);
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  background: var(--paper);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.fold::before {
+  content: '';
+  width: clamp(56px, 12vw, 150px);
+  height: 1px;
+  background: var(--rule);
+}
+
+.shell[data-fold='true'] .fold {
+  opacity: 1;
+}
+
+/* Scroll position within the active panel, drawn onto the rail's own border so
+   it reads as part of the frame rather than as chrome. Hidden below 768px,
+   where the rail is replaced by the tab bar. */
+.shell::before {
+  content: '';
+  display: none;
+  position: absolute;
+  left: calc(var(--rail-w) - 1px);
+  width: 1px;
+  height: calc(var(--panel-visible) * 100%);
+  top: calc(var(--panel-progress) * (100% - var(--panel-visible) * 100%));
+  background: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-fast) var(--ease);
+  z-index: 2;
+}
+
+.shell[data-panel-overflow='true']::before {
+  opacity: 1;
 }
 
 /* -- Mobile header (1) ---------------------------------------------------- */
@@ -74,6 +142,7 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
 }
 
 .mhead__name b {
@@ -112,13 +181,17 @@
   background: var(--paper);
   border-top: 1px solid var(--ink);
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  /* One equal column per section, however many there are. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   height: var(--tabbar-h);
   padding-bottom: env(safe-area-inset-bottom);
   box-sizing: content-box;
 }
 
 .tabbar__item {
+  position: relative;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -128,6 +201,13 @@
   letter-spacing: 0.08em;
   color: var(--muted);
   transition: color var(--t-fast) var(--ease);
+}
+
+.tabbar__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tabbar__num {
@@ -145,28 +225,67 @@
   padding: 1px 4px;
 }
 
+/* The rail hairline's mobile counterpart: progress through the active panel. */
+.tabbar__item[aria-current='true']::after {
+  content: '';
+  position: absolute;
+  left: 25%;
+  right: 25%;
+  bottom: 5px;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    var(--ink) 0 calc(var(--panel-progress) * 100%),
+    var(--rule) calc(var(--panel-progress) * 100%) 100%
+  );
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.shell[data-panel-overflow='true'] .tabbar__item[aria-current='true']::after {
+  opacity: 1;
+}
+
 /* -- Index rail (2 / 3 / 4) ------------------------------------------------ */
 
+/* The rail scrolls when it cannot fit (§4.6). Identity and contact stay pinned
+   to its ends; only the nav between them moves. Vertical padding lives on the
+   two pinned blocks rather than on .rail, so `top: 0` / `bottom: 0` stick
+   against the frame edge instead of sliding into the padding. */
 .rail {
   display: none;
   border-right: 1px solid var(--ink);
-  padding: var(--rail-pad-y) var(--rail-pad-x);
+  padding: 0 var(--rail-pad-x);
   flex-direction: column;
   justify-content: space-between;
   background: var(--paper);
   min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.rail::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .rail__top {
   display: flex;
   flex-direction: column;
-  gap: var(--rail-gap);
 }
 
 .rail__name {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 7px;
+  min-width: 0;
+  background: var(--paper);
+  padding: var(--rail-pad-y) 0 var(--rail-gap);
 }
 
 .rail__name b {
@@ -189,6 +308,7 @@
 .rail__nav {
   display: flex;
   flex-direction: column;
+  min-height: 0;
   border-top: 1px solid var(--hairline);
 }
 
@@ -196,6 +316,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   min-height: 44px;
   padding: 6px 0;
   border-bottom: 1px solid var(--hairline);
@@ -204,11 +325,19 @@
   transition: color var(--t-fast) var(--ease);
 }
 
+.rail__item span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .rail__item:hover {
   color: var(--muted);
 }
 
 .rail__item span:last-child {
+  flex: none;
   color: var(--rule);
   transition: color var(--t-fast) var(--ease);
 }
@@ -218,9 +347,15 @@
 }
 
 .rail__foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
+  background: var(--paper);
+  padding: 12px 0 var(--rail-pad-y);
   font-size: var(--fs-label);
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -237,6 +372,9 @@
   border-bottom: 1px solid var(--rule);
   padding-bottom: 3px;
   align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   letter-spacing: 0.04em;
   transition: color var(--t-fast) var(--ease);
 }
@@ -250,8 +388,8 @@
  * ========================================================================== */
 
 :root {
-  --fs-display: clamp(34px, 11.8vw, 52px);
-  --fs-section-head: clamp(22px, 7.2vw, 30px);
+  --fs-display: clamp(30px, min(11.8vw, 9.5vh), 52px);
+  --fs-section-head: clamp(20px, min(7.2vw, 5.5vh), 30px);
   --fs-case-name: 19px;
   --fs-stat: 26px;
   --fs-metric: 22px;
@@ -260,7 +398,8 @@
   --fs-micro: 8px;
   --fs-nav: 8px;
   --pad-x: 18px;
-  --pad-y: 24px;
+  --pad-y-base: 24px;
+  --rail-pad-x: 22px; /* rail is hidden here, but the token must resolve */
 }
 
 /* ==========================================================================
@@ -271,15 +410,26 @@
   :root {
     --rail-w: 212px;
     --rail-pad-x: 22px;
-    --rail-pad-y: 30px;
-    --rail-gap: 26px;
+    --rail-pad-y-base: 30px;
+    --rail-gap-base: 26px;
     --rail-name-fs: 27px;
 
     --pad-x: 40px;
-    --pad-y: 44px;
+    --pad-y-base: 44px;
 
-    --fs-display: clamp(58px, 9.4vw, 82px);
-    --fs-section-head: clamp(30px, 4.6vw, 40px);
+    --gap-intro-base: 26px;
+    --gap-contact-base: 30px;
+    --gap-about-base: 26px;
+    --gap-cases-base: 26px;
+    --gap-detail-base: 22px;
+
+    --stat-min: 100px;
+    --metric-min: 110px;
+    --fact-min: 120px;
+    --case-min: 115px;
+
+    --fs-display: clamp(44px, min(9.4vw, 10vh), 82px);
+    --fs-section-head: clamp(26px, min(4.6vw, 6vh), 40px);
     --fs-case-name: 23px;
     --fs-stat: 30px;
     --fs-metric: 28px;
@@ -302,6 +452,14 @@
   .rail {
     display: flex;
   }
+
+  .shell::before {
+    display: block;
+  }
+
+  .fold {
+    bottom: 0;
+  }
 }
 
 /* ==========================================================================
@@ -312,22 +470,22 @@
   :root {
     --rail-w: 238px;
     --rail-pad-x: 24px;
-    --rail-gap: 24px;
+    --rail-gap-base: 24px;
     --rail-name-fs: 29px;
 
     --pad-x: 44px;
-    --pad-y: 44px;
+    --pad-y-base: 44px;
 
-    --fs-display: clamp(64px, 7.2vw, 92px);
-    --fs-section-head: clamp(34px, 3.4vw, 42px);
+    --gap-about-base: 24px;
+    --gap-cases-base: 32px;
+    --row-exp-base: 18px;
+    --row-now-base: 28px;
+
+    --fs-display: clamp(48px, min(7.2vw, 11vh), 92px);
+    --fs-section-head: clamp(28px, min(3.4vw, 6vh), 42px);
     --fs-case-name: 24px;
     --fs-stat: 32px;
     --fs-metric: 29px;
-  }
-
-  /* Enough room for a full panel at once, so hard snapping feels right. */
-  .pane {
-    scroll-snap-type: y mandatory;
   }
 
   /* Rail is wide enough here to give each discipline its own line. */
@@ -349,15 +507,22 @@
   :root {
     --rail-w: 268px;
     --rail-pad-x: 28px;
-    --rail-pad-y: 36px;
-    --rail-gap: 30px;
+    --rail-pad-y-base: 36px;
+    --rail-gap-base: 30px;
     --rail-name-fs: 32px;
 
     --pad-x: 56px;
-    --pad-y: 52px;
+    --pad-y-base: 52px;
 
-    --fs-display: clamp(72px, 6.7vw, 104px);
-    --fs-section-head: clamp(34px, 2.9vw, 44px);
+    --gap-intro-base: 32px;
+    --gap-contact-base: 34px;
+    --gap-about-base: 26px;
+    --gap-cases-base: 36px;
+    --row-exp-base: 20px;
+    --row-now-base: 30px;
+
+    --fs-display: clamp(52px, min(6.7vw, 13vh), 104px);
+    --fs-section-head: clamp(28px, min(2.9vw, 6vh), 44px);
     --fs-case-name: 26px;
     --fs-stat: 34px;
     --fs-metric: 32px;
@@ -371,8 +536,36 @@
   }
 }
 
-/* Short viewports: let panels breathe rather than crushing the content. */
-@media (max-height: 620px) {
+/* ==========================================================================
+ *  Density ladder (§3.2) — a HEIGHT scale, orthogonal to the width boards.
+ *
+ *  Short viewports get less padding and tighter rhythm before anything has to
+ *  overflow, which absorbs the "sliver" case: a panel 105% of the viewport
+ *  that costs a scroll for thirty pixels of content. Order matters — the
+ *  narrower query has to win.
+ * ========================================================================== */
+
+/* compact — 620–819px. Where most laptops live (1366×768, 1280×720). */
+@media (max-height: 819px) {
+  :root {
+    --density: 0.75;
+  }
+
+  /* The rail foot sheds its least load-bearing line before the email does.
+     The matching copy switch (`.rsp-long` / `.rsp-short`) lives at the foot of
+     sections.css, where it can outrank the width-based rules. */
+  .rail__location {
+    display: none;
+  }
+}
+
+/* dense — under 620px. Snapping off and panels sized to content, so nothing
+   can be trapped off-screen on a landscape phone. */
+@media (max-height: 619px) {
+  :root {
+    --density: 0.6;
+  }
+
   .pane {
     scroll-snap-type: none;
   }

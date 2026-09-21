@@ -49,7 +49,7 @@ export function Rail({ active, onNav }: RailProps) {
             <span className="rsp-narrow">{identity.availability.compact}</span>
           </span>
         )}
-        <span>{identity.location}</span>
+        <span className="rail__location">{identity.location}</span>
         <a className="rail__email" href={`mailto:${identity.email}`}>
           {identity.email}
         </a>

@@ -41,7 +41,7 @@ export function TabBar({ active, onNav }: TabBarProps) {
           <span className="tabbar__num" aria-hidden="true">
             {item.num}
           </span>
-          {item.short}
+          <span className="tabbar__label">{item.short}</span>
         </button>
       ))}
     </nav>
