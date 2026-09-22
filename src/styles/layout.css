@@ -66,6 +66,30 @@
   scroll-snap-align: none;
 }
 
+/* -- Paged scroll (docs/DESIGN-SPEC-PAGED-SCROLL.md) -----------------------
+ * `data-paged` is written by `useDossierNav` and means "a wheel is driving,
+ * and the hook owns every settle". These two rules are that mode's CSS half;
+ * keeping both on one attribute is what stops the halves disagreeing.
+ */
+
+/* Snap and the hook would otherwise argue over the same scroll offset: the
+   hook parks a reader mid-section on purpose, which is exactly what proximity
+   snapping exists to undo. Touch keeps its snap — see the pointer test in the
+   hook. */
+.pane[data-paged='true'] {
+  scroll-snap-type: none;
+}
+
+/* The Mode C columns are handed the wheel only while they have somewhere to
+   go; the moment one is read out the hook takes it back and turns the page.
+   Containment closes the gap in between, where a fast flick could otherwise
+   chain out of the detail column on its own terms. Scoped to paged mode, so a
+   touch reader can still flick straight through into section 03. */
+.pane[data-paged='true'] .caselist,
+.pane[data-paged='true'] .detail {
+  overscroll-behavior-y: contain;
+}
+
 /* -- Continuation affordance (§4.2) ---------------------------------------
  * The printed dossier's "continued overleaf". Shown while the panel under the
  * reader overflows and is not yet scrolled to its end.
