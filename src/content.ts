@@ -186,9 +186,9 @@ export interface ExperienceEntry {
   /** Job title, or the qualification for an education entry. */
   title: string;
   /**
-   * Supports multiple lines two ways, and they render identically:
-   * a single string with '\n' where you want a break, or an array of lines.
-   * Reach for the array form when the lines are separate points.
+   * One or more points, each rendered on its own line with a leading dot.
+   * Use an array for several points, or a single string for one. A '\n' in a
+   * string also starts a new dotted line.
    */
   blurb: string | string[];
   /** Optional second line under the org — honours, stack, client, anything. */
@@ -224,19 +224,19 @@ export const experience = {
           period: 'JUL 2025 — NOW',
           org: 'Neuron',
           title: 'ENGINEERING DATA SPECIALIST',
-          blurb: 'Led platform pod of 9. Owned API, billing and developer experience.',
+          blurb: ['Led platform pod of 9.', 'Owned API, billing and developer experience.'],
         },
         {
           period: 'JAN 2025 - JUN 2025',
           org: 'Neuron',
           title: 'JUNIOR ENGINEERING DATA SPECIALIST',
-          blurb: 'First product hire. \n Took two internal tools to external GA.',
+          blurb: ['First product hire.', 'Took two internal tools to external GA.'],
         },
         {
           period: 'DEC 2022 — DEC 2024',
           org: 'Neuron',
           title: 'ENGINEERING CONSULTANT, BUILDING SERVICES ENGINEER',
-          blurb: 'Ledger and reconciliation services in Go. \n On-call for settlement.',
+          blurb: ['Ledger and reconciliation services in Go.', 'On-call for settlement.'],
         },
       ],
     },
@@ -250,14 +250,14 @@ export const experience = {
           org: 'UNSW',
           title: 'BSC., COMPUTER SCIENCE',
           meta: 'Distinction',
-          blurb: 'Coursework in thermal systems, \n controls and energy analysis.',
+          blurb: ['Coursework in thermal systems, controls and energy analysis.'],
         },
         {
           period: 'SEP 2019 — DEC 2024',
           org: 'UNSW',
           title: 'BE.(HONS), MECHANICAL ENGINEERING',
           meta: 'First class honours',
-          blurb: 'Final-year project on sensor \n networks for plant-room telemetry.',
+          blurb: ['Final-year project on sensor networks for plant-room telemetry.'],
         },
       ],
     },

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { experience } from '../content';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
@@ -36,6 +37,25 @@ function ResumeCta({ className }: { className: string }) {
   );
 }
 
+/** Both blurb forms become one list of lines — each gets its own bullet. */
+function blurbLines(blurb: string | string[]): string[] {
+  const lines = Array.isArray(blurb) ? blurb : blurb.split('\n');
+  return lines.map((line) => line.trim()).filter(Boolean);
+}
+
+/**
+ * Date and title share a font, size and tracking, so their character counts are
+ * a fair proxy for their widths. Splitting the row in that ratio means that when
+ * the pair no longer fits on one line, both wrap onto the same number of lines —
+ * rather than the title claiming its full width and squeezing the date into a
+ * tall stack of words.
+ */
+function headColumns(period: string, title: string): CSSProperties {
+  return {
+    gridTemplateColumns: `minmax(min-content, ${period.length}fr) minmax(min-content, ${title.length}fr)`,
+  };
+}
+
 export function Experience() {
   const { tracks } = experience;
   const wide = useMediaQuery('(min-width: 768px)');
@@ -65,22 +85,22 @@ export function Experience() {
 
             <div className="exp__list">
               {track.entries.map((entry) => (
-                <div className="exp__row" key={`${track.key}-${entry.org}-${entry.period}`}>
+                <div
+                  className="exp__row"
+                  key={`${track.key}-${entry.org}-${entry.period}`}
+                  style={headColumns(entry.period, entry.title)}
+                >
                   <span className="exp__period">{entry.period}</span>
                   <span className="exp__title">{entry.title}</span>
                   <span className="exp__org">{entry.org}</span>
                   {entry.meta ? <span className="exp__meta">{entry.meta}</span> : null}
-                  {Array.isArray(entry.blurb) ? (
-                    <ul className="exp__blurb exp__blurb--list">
-                      {entry.blurb.map((line, i) => (
-                        <li className="exp__line" key={i}>
-                          {line}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <span className="exp__blurb">{entry.blurb}</span>
-                  )}
+                  <ul className="exp__blurb">
+                    {blurbLines(entry.blurb).map((line, i) => (
+                      <li className="exp__line" key={i}>
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>

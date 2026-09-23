@@ -706,10 +706,12 @@
 }
 
 /* Explicit placement rather than grid-template-areas: the optional meta line
-   has to disappear without leaving a gap behind it. */
+   has to disappear without leaving a gap behind it. The two head columns are
+   set inline, split in proportion to the date and title lengths so the pair
+   wraps onto matching line counts — this is only the fallback. */
 .exp__row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 7px 12px;
   padding: var(--row-exp) 0;
   border-bottom: 1px solid var(--hairline);
@@ -721,6 +723,7 @@
 }
 
 .exp__period {
+  text-wrap: balance;
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
@@ -730,6 +733,7 @@
 }
 
 .exp__title {
+  text-wrap: balance;
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
@@ -759,22 +763,32 @@
   color: var(--muted);
 }
 
+/* Each line of a blurb is a list item led by a small dot, so separate points
+   read as separate points. Lines that wrap hang under the text, not the dot. */
 .exp__blurb {
-  font-size: calc(var(--fs-body) - 1px);
-  line-height: 1.6;
-  color: var(--body);
-  /* Honours literal newlines in a blurb string while still collapsing the
-     indentation around them, so content can break its own lines. */
-  white-space: pre-line;
-}
-
-/* Array form — semantically a list, but set as plain lines so it matches a
-   newline-broken string exactly. Add a marker here if you want bullets. */
-.exp__blurb--list {
   margin: 0;
   padding: 0;
   list-style: none;
-  white-space: normal;
+  font-size: calc(var(--fs-body) - 1px);
+  line-height: 1.6;
+  color: var(--body);
+}
+
+.exp__line {
+  position: relative;
+  padding-left: 14px;
+}
+
+.exp__line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.8em; /* half the 1.6 line-height — centred on the first line */
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: var(--muted);
 }
 
 .exp__line + .exp__line {
